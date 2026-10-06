@@ -13,7 +13,8 @@
 - [x] Click her for a wave and a cute line.
 - [x] Custom messages in Settings (each reminder line and the cute lines).
 - [x] App ready for a laptop "work" clip during focus.
-- [ ] **Make the laptop clip in Google Flow** (prompt in the README) and add it.
+- [x] Laptop clip made in Google Flow and added: she types on her laptop during focus.
+- [x] Fixed: bubble buttons couldn't be clicked (her video box covered the bubble).
 
 ## Decided
 - Water reminders wait until a focus session ends.

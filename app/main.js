@@ -6,8 +6,10 @@ const path = require('path');
 const { Store, NUMBERS, DEFAULT_MESSAGES } = require('./store');
 
 const NAME = 'Desk Buddy';
-const CHAR_WIDTH = { small: 200, medium: 260, large: 330 };
-const VIDEO = { w: 532, h: 810 };     // size of the cleaned clips
+// Her clip height on screen per size (medium is about a palm's height). Sized by
+// height so she stays the same size when the clips get wider room at the sides.
+const CHAR_HEIGHT = { small: 305, medium: 396, large: 502 };
+const VIDEO = require('./media/clips.json');   // size of the cleaned clips, written by tools/clean_clips.py
 const BUBBLE_W = 290;                 // speech bubble width
 const BUBBLE_SPACE = 240;             // room above her head for the bubble
 const BAR_SPACE = 64;                 // room under her for the control bar
@@ -29,8 +31,8 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 function layout(size) {
-  const charW = CHAR_WIDTH[size] || CHAR_WIDTH.medium;
-  const charH = Math.round(charW * VIDEO.h / VIDEO.w);
+  const charH = CHAR_HEIGHT[size] || CHAR_HEIGHT.medium;
+  const charW = Math.round(charH * VIDEO.width / VIDEO.height);
   return {
     charW, charH, bubbleW: BUBBLE_W, barH: BAR_SPACE,
     width: Math.max(charW, BUBBLE_W) + SIDE * 2,

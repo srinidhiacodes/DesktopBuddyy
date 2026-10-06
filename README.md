@@ -85,12 +85,13 @@ GitHub also builds it on every push (**Actions** tab → **Build for Windows**).
 
 ### Adding the laptop clip (her working during focus)
 
-The app plays an optional `work` clip during focus: after her wave, she works on a laptop until focus ends. Without the clip she just sways as usual.
+During focus she waves, then works on her laptop (the `work` clip) until focus ends. The clip in `source/clips/work.mp4` was made this way; to replace it:
 
 1. In Google Flow, use `source/stills/green.jpg` as the start image (9:16, 8–10 seconds) with a prompt like:
    > The same girl holds an open silver laptop at chest height and types on it, looking at the screen with a small focused smile, sometimes nodding. The camera is completely still, with the same framing and size as the start image. Solid bright green background, no shadows, no other objects. The first and last frames match so it loops smoothly.
 2. Save it as `source/clips/work.mp4`.
-3. Run `python3 tools/clean_clips.py` and then `python3 tools/make_masks.py`. The work clip is picked up automatically.
+3. Run `python3 tools/clean_clips.py` and then `python3 tools/make_masks.py`.
+4. Only the typing part of the clip is used, and its end blends into its start so it loops smoothly: if a new clip is timed differently, adjust `TRIM` in `tools/clean_clips.py`.
 
 ### How the cleaning works
 
