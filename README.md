@@ -30,6 +30,20 @@ Tip: keep the `DeskBuddy` folder somewhere permanent, such as Documents, before 
 - **Drag her** anywhere on the screen. She remembers the spot.
 - **Right-click her**, or click the **pink drop icon near the clock**, for the menu: turn on or off, start focus, sound, size, start with Windows, settings, quit.
 - When she's **off**, click the grey drop near the clock to turn her back on. (If you can't see it, click the small **^** arrow near the clock.)
+- **Click her** for a wave and a cute line.
+
+## What she reminds you about
+
+| Reminder | Default | What she does |
+|---|---|---|
+| Water | every 30 min | Drinks, asks if you drank; **Later** asks again in 10 min |
+| Eye rest (20-20-20) | every 20 min | "Rest your eyes!" with a 20-second countdown |
+| Posture | every 60 min | "Sit up straight!" (closes itself after 30 seconds) |
+| Focus / break | 25 / 5 min | Countdown, then she stretches with you |
+
+During focus she stays quiet: eye-rest and posture reminders are skipped, and water waits until focus ends. Only one reminder shows at a time; others wait their turn.
+
+Everything can be changed in **Settings** (right-click her → Settings…), including her messages: write your own words for each reminder and your own cute lines for when you click her.
 
 ## Moving to another laptop
 
@@ -68,6 +82,15 @@ GitHub also builds it on every push (**Actions** tab → **Build for Windows**).
 - `tools/make_icons.py` – draws the tray and app icons.
 - `tools/build.mjs` – packages the app into `dist/DeskBuddy` (`npm run dist`).
 - `.github/workflows/build-windows.yml` – builds `DeskBuddy.exe` on GitHub and publishes the release.
+
+### Adding the laptop clip (her working during focus)
+
+The app plays an optional `work` clip during focus: after her wave, she works on a laptop until focus ends. Without the clip she just sways as usual.
+
+1. In Google Flow, use `source/stills/green.jpg` as the start image (9:16, 8–10 seconds) with a prompt like:
+   > The same girl holds an open silver laptop at chest height and types on it, looking at the screen with a small focused smile, sometimes nodding. The camera is completely still, with the same framing and size as the start image. Solid bright green background, no shadows, no other objects. The first and last frames match so it loops smoothly.
+2. Save it as `source/clips/work.mp4`.
+3. Run `python3 tools/clean_clips.py` and then `python3 tools/make_masks.py`. The work clip is picked up automatically.
 
 ### How the cleaning works
 

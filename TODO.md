@@ -7,9 +7,19 @@
 - [x] **Step 5 – Test on your Windows laptop.** Tested and working.
 - [x] **Step 6 – Bug review.** Fixed: animation restarting behind the lock screen after sleep; window size changing when dragged between screens with different scaling; a timer ending during the water question replacing her drinking clip; a start-up timing crash.
 
+## Round 2
+- [x] Eye-rest reminder (20-20-20), every 20 min, with a 20-second countdown.
+- [x] Posture reminder, every 60 min.
+- [x] Click her for a wave and a cute line.
+- [x] Custom messages in Settings (each reminder line and the cute lines).
+- [x] App ready for a laptop "work" clip during focus.
+- [ ] **Make the laptop clip in Google Flow** (prompt in the README) and add it.
+
 ## Decided
 - Water reminders wait until a focus session ends.
 - Water count resets at midnight.
 - Start with Windows is off by default.
 - Chime is a soft two-note sound made by the app (no sound file).
 - Name: Desk Buddy.
+- During focus, eye-rest and posture reminders are skipped; water waits.
+- One reminder at a time, in this order: water, eye rest, posture.

@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parent.parent
 MEDIA = ROOT / "app" / "media"
 OUT = ROOT / "app" / "renderer" / "masks.js"
 CLIPS = ["idle1", "idle2", "focus", "drink", "stretch"]
+if (MEDIA / "work.webm").exists():   # optional laptop clip for focus
+    CLIPS.append("work")
 CELL = 10
 THRESHOLD = 64   # alpha above this counts as her
 

@@ -7,15 +7,17 @@ const api = window.buddy;
 const $ = id => document.getElementById(id);
 
 // Slider steps; the ranges themselves come from the main process.
-const STEPS = { waterEvery: 5, snooze: 5, goal: 1, focus: 5, break: 1 };
-const SWITCHES = ['sound', 'startWithWindows'];
+const STEPS = { waterEvery: 5, snooze: 5, goal: 1, focus: 5, break: 1, eyesEvery: 5, postureEvery: 15 };
+const SWITCHES = ['sound', 'startWithWindows', 'eyes', 'posture'];
 
 let sendTimer = null;
 let pending = {};
 
 // Sliders send while dragging, at most a few times a second.
 function queue(patch) {
+  const messages = { ...pending.messages, ...patch.messages };
   Object.assign(pending, patch);
+  if (patch.messages) pending.messages = messages;
   clearTimeout(sendTimer);
   sendTimer = setTimeout(flush, 150);
 }
@@ -45,6 +47,15 @@ function show(settings) {
   }
   $(`size-${settings.size}`).checked = true;
   for (const key of SWITCHES) $(key).checked = settings[key];
+  // An interval slider is dimmed and locked while its reminder is off.
+  document.querySelectorAll('[data-needs]').forEach(row => {
+    const off = !settings[row.dataset.needs];
+    row.classList.toggle('off', off);
+    row.querySelector('input').disabled = off;
+  });
+  document.querySelectorAll('[data-msg]').forEach(el => {
+    if (document.activeElement !== el) el.value = settings.messages[el.dataset.msg] || '';
+  });
 }
 
 (async () => {
@@ -67,6 +78,12 @@ function show(settings) {
   for (const key of SWITCHES) {
     $(key).addEventListener('change', () => api.setSettings({ [key]: $(key).checked }));
   }
+
+  document.querySelectorAll('[data-msg]').forEach(el => {
+    el.placeholder = init.defaultMessages[el.dataset.msg];
+    el.addEventListener('input', () => queue({ messages: { [el.dataset.msg]: el.value } }));
+    el.addEventListener('change', flush);
+  });
 
   $('reset').onclick = () => api.resetSettings();
   $('done').onclick = () => { flush(); api.closeSettings(); };

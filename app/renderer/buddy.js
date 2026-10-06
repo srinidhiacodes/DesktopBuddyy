@@ -1,5 +1,6 @@
-// Desk Buddy: what she plays, what her bubble says, and the water, focus and
-// break timers. The behaviour follows the "What triggers what" table in the brief.
+// Desk Buddy: what she plays, what her bubble says, and the reminder, focus
+// and break timers. The behaviour follows the "What triggers what" table in
+// the brief, plus eye-rest and posture reminders.
 
 'use strict';
 
@@ -8,15 +9,18 @@ const api = window.buddy;
 const MASKS = window.BUDDY_MASKS;
 const MIN = 60 * 1000;
 const IDLE = ['idle1', 'idle2'];
+const HAS_WORK_CLIP = Boolean(MASKS.clips.work);   // optional laptop clip for focus
 const SHORT_MESSAGE = 3500;     // how long "Nice!" style messages stay up
 const COMPACT_AFTER = 8000;     // focus bubble drops its title after this
+const EYES_REST = 20 * 1000;    // the 20 seconds of the 20-20-20 rule
+const POSTURE_SHOW = 30 * 1000; // posture bubble closes itself after this
 
-let settings, water;
+let settings, water, defaultMessages;
 let on = true, locked = false;
 
 // ---- Clips ------------------------------------------------------------------
 // Two stacked videos: the next clip loads in the hidden one, then they crossfade.
-// Action clips play once, then she goes back to alternating idle clips.
+// Action clips play once, then she goes back to idle (or to work during focus).
 
 const videos = [$('vid-a'), $('vid-b')];
 let front = 0, clip = null, idleTurn = 0;
@@ -38,7 +42,10 @@ function play(name) {
   if (next.readyState >= 2) swap(); else next.addEventListener('loadeddata', swap, { once: true });
 }
 
-function playIdle() { play(IDLE[idleTurn++ % IDLE.length]); }
+function playIdle() {
+  if (state.base === 'focus' && HAS_WORK_CLIP) play('work');
+  else play(IDLE[idleTurn++ % IDLE.length]);
+}
 
 function paused() { return !on || locked; }
 
@@ -70,6 +77,17 @@ function chime() {
   });
 }
 
+// ---- Words ------------------------------------------------------------------
+
+// The user's own message for a bubble, or the default.
+function say(key) {
+  return (settings.messages && settings.messages[key]) || defaultMessages[key];
+}
+
+function cuteLines() {
+  return say('lines').split('\n').map(l => l.trim()).filter(Boolean);
+}
+
 // ---- Water count ------------------------------------------------------------
 
 function today() {
@@ -87,19 +105,30 @@ function checkDay() {
 }
 
 // ---- State ------------------------------------------------------------------
-// base:   idle | focus | focusDone | break | breakDone
-// prompt: 'water' while the water question is open
-// note:   a short message (greeting, "Nice!", ...) that clears itself
+// base:    idle | focus | focusDone | break | breakDone
+// prompt:  the reminder on screen (water | eyes | posture), one at a time
+// waiting: reminders that came due while she was busy
+// note:    a short message (greeting, "Nice!", ...) that clears itself
+
+const REMINDERS = ['water', 'eyes', 'posture'];   // also the order waiting ones are shown in
 
 const state = {
   base: 'idle',
   focusStart: 0, focusEnd: 0,
   breakStart: 0, breakEnd: 0,
-  waterDue: 0, waterWaiting: false,
-  prompt: null,
+  due: { water: 0, eyes: 0, posture: 0 },
+  waiting: new Set(),
+  prompt: null, promptStart: 0, promptEnd: 0,
   note: null, noteUntil: 0, noteDone: null,
   pausedAt: 0,
 };
+
+function enabled(r, s = settings) { return r === 'water' || s[r]; }
+function every(r) { return settings[`${r}Every`] * MIN; }
+
+function schedule(r, ms) {
+  state.due[r] = enabled(r) ? Date.now() + (ms ?? every(r)) : 0;
+}
 
 function note(view, ms, done) {
   state.note = view;
@@ -113,25 +142,33 @@ function greet() {
   note({ key: 'greet', title: "Hi! I'm here." }, 5000);
 }
 
-// Water waits while she is busy (focus, or a question already on screen).
-function canAskWater() {
+// Reminders wait while she is busy: during focus, at the end-of-focus and
+// end-of-break questions, or while another bubble is up.
+function canAsk() {
   return !state.prompt && !state.note && (state.base === 'idle' || state.base === 'break');
 }
 
-function askWater() {
-  state.waterWaiting = false;
-  state.prompt = 'water';
-  play('drink');
+function ask(r) {
+  const now = Date.now();
+  state.waiting.delete(r);
+  state.prompt = r;
+  state.promptStart = now;
+  state.promptEnd = r === 'eyes' ? now + EYES_REST : r === 'posture' ? now + POSTURE_SHOW : 0;
+  if (r === 'water') play('drink');
   chime();
   render();
+}
+
+function closePrompt(r) {
+  state.prompt = null;
+  schedule(r);
 }
 
 function drank() {
   checkDay();
   water = { day: water.day, count: water.count + 1 };
   api.setWater(water);
-  state.prompt = null;
-  state.waterDue = Date.now() + settings.waterEvery * MIN;
+  closePrompt('water');
   updateBar();
   const msg = water.count >= settings.goal
     ? `Goal reached! ${water.count} of ${settings.goal} today.`
@@ -141,13 +178,27 @@ function drank() {
 
 function later() {
   state.prompt = null;
-  state.waterDue = Date.now() + settings.snooze * MIN;
+  schedule('water', settings.snooze * MIN);
   note({ key: 'later', title: `Okay! I'll ask again in ${settings.snooze} min.` }, SHORT_MESSAGE);
+}
+
+function eyesDone(skipped) {
+  closePrompt('eyes');
+  if (skipped) render();
+  else note({ key: 'eyesDone', title: 'Eyes rested. Nice!' }, 2500);
+}
+
+function postureDone() {
+  closePrompt('posture');
+  render();
 }
 
 function startFocus() {
   const now = Date.now();
-  if (state.prompt === 'water') { state.prompt = null; state.waterWaiting = true; }
+  // A water question goes back in the queue; eye-rest and posture are simply skipped.
+  if (state.prompt === 'water') state.waiting.add('water');
+  else if (state.prompt) schedule(state.prompt);
+  state.prompt = null;
   state.note = null;
   state.base = 'focus';
   state.focusStart = now;
@@ -156,13 +207,15 @@ function startFocus() {
   render();
 }
 
-function stopFocus() { state.base = 'idle'; render(); }
+function endWork() { if (clip === 'work') playIdle(); }
 
-// A timer ending while the water question is open waits its turn: no new clip
-// or chime until she's answered, then its bubble shows.
+function stopFocus() { state.base = 'idle'; endWork(); render(); }
+
+// A timer ending while a reminder is open waits its turn: no new clip or
+// chime until the reminder is answered, then its bubble shows.
 function focusDone() {
   state.base = 'focusDone';
-  if (!state.prompt) { play('stretch'); chime(); }
+  if (!state.prompt) { play('stretch'); chime(); } else endWork();
   render();
 }
 
@@ -186,6 +239,19 @@ function turnOff() {
   note({ key: 'bye', title: 'See you soon' }, 1200, () => api.setPower(false));
 }
 
+// Clicked (not dragged) while nothing else is on: a wave and a cute line.
+let lastLine = '';
+function poke() {
+  if (!on || state.prompt || state.note || state.base !== 'idle') return;
+  const lines = cuteLines();
+  const fresh = lines.filter(l => l !== lastLine);
+  const pick = fresh.length ? fresh : lines;
+  if (!pick.length) return;
+  lastLine = pick[Math.floor(Math.random() * pick.length)];
+  if (IDLE.includes(clip)) play('focus');
+  note({ key: 'poke', title: lastLine }, SHORT_MESSAGE);
+}
+
 // ---- Timers -------------------------------------------------------------------
 
 let ticker = null;
@@ -202,8 +268,20 @@ function tick() {
   }
   if (state.base === 'focus' && now >= state.focusEnd) focusDone();
   if (state.base === 'break' && now >= state.breakEnd) breakDone();
-  if (state.waterDue && now >= state.waterDue) { state.waterDue = 0; state.waterWaiting = true; }
-  if (state.waterWaiting && canAskWater()) askWater();
+  if (state.prompt === 'eyes' && now >= state.promptEnd) eyesDone(false);
+  if (state.prompt === 'posture' && now >= state.promptEnd) postureDone();
+
+  for (const r of REMINDERS) {
+    if (!state.due[r] || now < state.due[r]) continue;
+    // During focus she stays quiet: water waits, eye-rest and posture are skipped.
+    if (state.base === 'focus' && r !== 'water') { schedule(r); continue; }
+    state.due[r] = 0;
+    state.waiting.add(r);
+  }
+  if (canAsk()) {
+    const next = REMINDERS.find(r => state.waiting.has(r));
+    if (next) ask(next);
+  }
   updateLive();
 }
 
@@ -222,9 +300,10 @@ function setOn(value) {
     render();
   } else {
     const gap = now - (state.pausedAt || now);
-    for (const k of ['focusStart', 'focusEnd', 'breakStart', 'breakEnd', 'waterDue']) {
+    for (const k of ['focusStart', 'focusEnd', 'breakStart', 'breakEnd', 'promptStart', 'promptEnd']) {
       if (state[k]) state[k] += gap;
     }
+    for (const r of REMINDERS) if (state.due[r]) state.due[r] += gap;
     startTicking();
     greet();
   }
@@ -238,22 +317,39 @@ function clockText(ms) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-function waterView() {
-  return {
-    key: 'water',
-    title: 'Time for water!',
-    text: `You've had ${water.count} of ${settings.goal} glasses today.`,
-    glasses: true,
-    primary: ['Done, I drank', drank],
-    secondary: ['Later', later],
-  };
+function promptView() {
+  switch (state.prompt) {
+    case 'water': return {
+      key: 'water',
+      title: say('water'),
+      text: `You've had ${water.count} of ${settings.goal} glasses today.`,
+      glasses: true,
+      primary: ['Done, I drank', drank],
+      secondary: ['Later', later],
+    };
+    case 'eyes': return {
+      key: 'eyes',
+      title: say('eyes'),
+      text: 'Look at something 6 metres (20 feet) away until the timer ends.',
+      timer: () => state.promptEnd - Date.now(),
+      progress: () => (Date.now() - state.promptStart) / EYES_REST,
+      timerButton: ['Skip', () => eyesDone(true)],
+    };
+    case 'posture': return {
+      key: 'posture',
+      title: say('posture'),
+      text: 'Shoulders down, back straight, feet flat on the floor.',
+      primary: ['Done', postureDone],
+    };
+    default: return null;
+  }
 }
 
 function baseView() {
   switch (state.base) {
     case 'focus': return {
       key: 'focus',
-      title: "Let's focus! You've got this.",
+      title: say('focus'),
       compact: () => Date.now() >= state.focusStart + COMPACT_AFTER,
       timer: () => state.focusEnd - Date.now(),
       progress: () => (Date.now() - state.focusStart) / (state.focusEnd - state.focusStart),
@@ -261,7 +357,7 @@ function baseView() {
     };
     case 'focusDone': return {
       key: 'focusDone',
-      title: 'Great work! Stretch with me.',
+      title: say('stretch'),
       text: `${settings.break} minute break. Look away from the screen.`,
       primary: ['Start break', startBreak],
       secondary: ['Skip', toIdle],
@@ -286,8 +382,7 @@ function baseView() {
 function currentView() {
   if (!on) return null;
   if (state.note) return state.note;
-  if (state.prompt === 'water') return waterView();
-  return baseView();
+  return promptView() || baseView();
 }
 
 const bubble = $('bubble');
@@ -297,7 +392,7 @@ function render() {
   const view = currentView();
   updateBar();
   if (!view) { bubble.hidden = true; shown = null; return; }
-  const key = view.key + '|' + (view.text || '') + '|' + (view.glasses ? water.count + '/' + settings.goal : '');
+  const key = [view.key, view.title, view.text || '', view.glasses ? water.count + '/' + settings.goal : ''].join('|');
   if (shown && shown.k === key) { shown.view = view; updateLive(); return; }
   shown = { k: key, view };
 
@@ -414,7 +509,7 @@ document.addEventListener('mouseleave', () => {
   hideBarSoon();
 });
 
-// ---- Drag her anywhere ----------------------------------------------------------
+// ---- Drag her anywhere (a click without moving is a poke) ------------------------
 
 let pressed = null, dragging = false;
 
@@ -432,15 +527,19 @@ charEl.addEventListener('pointermove', e => {
   }
   api.dragMove();
 });
-const endDrag = () => {
+charEl.addEventListener('pointerup', () => {
+  if (dragging) api.dragEnd();
+  else if (pressed) poke();
+  pressed = null;
+  dragging = false;
+});
+charEl.addEventListener('pointercancel', () => {
   if (dragging) api.dragEnd();
   pressed = null;
   dragging = false;
-};
-charEl.addEventListener('pointerup', endDrag);
+});
 // Right-click her for the same menu as the tray icon.
 charEl.addEventListener('contextmenu', e => { e.preventDefault(); api.showMenu(); });
-charEl.addEventListener('pointercancel', endDrag);
 
 // ---- Start-up ---------------------------------------------------------------------
 
@@ -457,10 +556,20 @@ api.on('locked', value => { locked = value; applyPause(); });
 api.on('command', cmd => { if (cmd === 'start-focus' && on) startFocus(); });
 api.on('settings', ({ settings: s, layout }) => {
   if (!settings) return;   // still starting up; init brings the latest settings
-  const intervalChanged = s.waterEvery !== settings.waterEvery;
+  const old = settings;
   settings = s;
   applyLayout(layout);
-  if (intervalChanged && state.waterDue) state.waterDue = Date.now() + s.waterEvery * MIN;
+  for (const r of REMINDERS) {
+    if (!enabled(r)) {
+      // Turned off: forget it, and close it if it's on screen.
+      state.due[r] = 0;
+      state.waiting.delete(r);
+      if (state.prompt === r) state.prompt = null;
+    } else if (!enabled(r, old) || s[`${r}Every`] !== old[`${r}Every`]) {
+      // Turned on, or its interval changed: count from now.
+      if (state.prompt !== r && !state.waiting.has(r)) schedule(r);
+    }
+  }
   shown = null;
   render();
 });
@@ -469,9 +578,10 @@ api.on('settings', ({ settings: s, layout }) => {
   const init = await api.init();
   settings = init.settings;
   water = init.water;
+  defaultMessages = init.defaultMessages;
   applyLayout(init.layout);
   checkDay();
-  state.waterDue = Date.now() + settings.waterEvery * MIN;
+  for (const r of REMINDERS) schedule(r);
   on = init.on;
   if (on) {
     greet();

@@ -3,7 +3,7 @@
 
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, powerMonitor, nativeImage, session } = require('electron');
 const path = require('path');
-const { Store, NUMBERS } = require('./store');
+const { Store, NUMBERS, DEFAULT_MESSAGES } = require('./store');
 
 const NAME = 'Desk Buddy';
 const CHAR_WIDTH = { small: 200, medium: 260, large: 330 };
@@ -152,6 +152,8 @@ function updateTray() {
     { type: 'separator' },
     { label: 'Start focus', enabled: on, click: () => send('command', 'start-focus') },
     { label: 'Sound', type: 'checkbox', checked: s.sound, click: i => changeSettings({ sound: i.checked }) },
+    { label: 'Eye-rest reminders', type: 'checkbox', checked: s.eyes, click: i => changeSettings({ eyes: i.checked }) },
+    { label: 'Posture reminders', type: 'checkbox', checked: s.posture, click: i => changeSettings({ posture: i.checked }) },
     { label: 'Size', submenu: ['small', 'medium', 'large'].map(size) },
     { label: 'Start with Windows', type: 'checkbox', checked: s.startWithWindows,
       click: i => changeSettings({ startWithWindows: i.checked }) },
@@ -227,6 +229,7 @@ function applyStartWithWindows() {
 ipcMain.handle('init', () => ({
   name: NAME,
   limits: NUMBERS,
+  defaultMessages: DEFAULT_MESSAGES,
   settings: store.settings,
   layout: layout(store.settings.size),
   water: store.data.water,
@@ -246,7 +249,7 @@ ipcMain.on('open-settings', openSettings);
 ipcMain.on('settings-ready', (_e, height) => {
   if (!settingsWin || settingsWin.isDestroyed()) return;
   const wa = screen.getDisplayMatching(settingsWin.getBounds()).workArea;
-  const h = Math.min(Math.round(Number(height)) || 660, wa.height - 40);
+  const h = Math.min(Math.round(Number(height)) || 660, 760, wa.height - 40);
   settingsWin.setContentSize(420, h);
   settingsWin.center();
   settingsWin.show();

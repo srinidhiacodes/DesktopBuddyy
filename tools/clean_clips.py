@@ -22,6 +22,9 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "source" / "clips"
 
 CLIPS = ["idle1", "idle2", "focus", "drink", "stretch"]
+# Optional: her working on a laptop, played during focus. Used when the file exists.
+if (SRC / "work.mp4").exists():
+    CLIPS.append("work")
 REFERENCE = "focus"          # every clip is lined up to this one
 CANVAS = (540, 960)          # reference clip size (w, h)
 FACE = (110, 330, 440, 620)  # her face in the reference clip's first frame (x0, y0, x1, y1)
