@@ -1,0 +1,25 @@
+# Builds DeskBuddy.exe on a Windows machine at GitHub on every push.
+# Download it from the repo's Actions tab: open the latest run, then
+# "DeskBuddy" under Artifacts.
+name: Build for Windows
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DeskBuddy
+          path: dist/DeskBuddy
+          retention-days: 30

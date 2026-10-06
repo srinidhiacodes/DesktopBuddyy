@@ -6,9 +6,11 @@
   "main": "app/main.js",
   "private": true,
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "node tools/build.mjs"
   },
   "devDependencies": {
+    "@electron/packager": "20.3.0",
     "electron": "44.5.1"
   }
 }

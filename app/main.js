@@ -1,7 +1,7 @@
 // Desk Buddy main process: her see-through window, the tray icon near the
 // clock, saving, and pausing when the screen is locked.
 
-const { app, BrowserWindow, Tray, Menu, ipcMain, screen, powerMonitor, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, powerMonitor, nativeImage, session } = require('electron');
 const path = require('path');
 const { Store, NUMBERS } = require('./store');
 
@@ -53,6 +53,9 @@ function onScreen(pos, l) {
 }
 
 function start() {
+  // No internet: switch off the spell-checker, which would download a dictionary.
+  session.defaultSession.setSpellCheckerEnabled(false);
+  session.defaultSession.setSpellCheckerLanguages([]);
   store = new Store(app.getPath('userData'));
   app.setAppUserModelId('com.deskbuddy.app');
 
@@ -68,6 +71,7 @@ function start() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true, nodeIntegration: false, sandbox: true,
+      spellcheck: false,   // the spell-checker would download dictionaries; she stays offline
       autoplayPolicy: 'no-user-gesture-required',
       backgroundThrottling: false,
     },
@@ -186,6 +190,7 @@ function openSettings() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true, nodeIntegration: false, sandbox: true,
+      spellcheck: false,   // the spell-checker would download dictionaries; she stays offline
     },
   });
   settingsWin.setMenu(null);
