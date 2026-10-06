@@ -158,10 +158,11 @@ function startFocus() {
 
 function stopFocus() { state.base = 'idle'; render(); }
 
+// A timer ending while the water question is open waits its turn: no new clip
+// or chime until she's answered, then its bubble shows.
 function focusDone() {
   state.base = 'focusDone';
-  play('stretch');
-  chime();
+  if (!state.prompt) { play('stretch'); chime(); }
   render();
 }
 
@@ -175,8 +176,7 @@ function startBreak() {
 
 function breakDone() {
   state.base = 'breakDone';
-  play('focus');
-  chime();
+  if (!state.prompt) { play('focus'); chime(); }
   render();
 }
 
@@ -456,6 +456,7 @@ api.on('power', value => setOn(value));
 api.on('locked', value => { locked = value; applyPause(); });
 api.on('command', cmd => { if (cmd === 'start-focus' && on) startFocus(); });
 api.on('settings', ({ settings: s, layout }) => {
+  if (!settings) return;   // still starting up; init brings the latest settings
   const intervalChanged = s.waterEvery !== settings.waterEvery;
   settings = s;
   applyLayout(layout);

@@ -17,6 +17,9 @@ const EDGE = 8;                       // gap from the screen edge on first run
 let store, win, tray, menu, settingsWin;
 let interactive = false;
 let drag = null;
+// Her animation pauses while the screen is locked or the laptop is asleep.
+// The two are tracked apart: waking from sleep can still leave the screen locked.
+const resting = { locked: false, asleep: false };
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
@@ -86,10 +89,14 @@ function start() {
   makeTray();
   applyStartWithWindows();
 
-  powerMonitor.on('lock-screen', () => send('locked', true));
-  powerMonitor.on('unlock-screen', () => send('locked', false));
-  powerMonitor.on('suspend', () => send('locked', true));
-  powerMonitor.on('resume', () => send('locked', false));
+  const rest = (key, value) => {
+    resting[key] = value;
+    send('locked', resting.locked || resting.asleep);
+  };
+  powerMonitor.on('lock-screen', () => rest('locked', true));
+  powerMonitor.on('unlock-screen', () => rest('locked', false));
+  powerMonitor.on('suspend', () => rest('asleep', true));
+  powerMonitor.on('resume', () => rest('asleep', false));
   screen.on('display-removed', keepOnScreen);
   screen.on('display-metrics-changed', keepOnScreen);
 }
@@ -257,15 +264,18 @@ ipcMain.on('set-interactive', (_e, on) => {
 });
 
 // Dragging: positions come from the real cursor, so screen scaling can't throw it off.
+// The size is set on every move too: Windows can resize a see-through window
+// when it crosses onto a screen with different scaling.
 ipcMain.on('drag-start', () => {
   const c = screen.getCursorScreenPoint();
   const [x, y] = win.getPosition();
-  drag = { dx: c.x - x, dy: c.y - y };
+  const l = layout(store.settings.size);
+  drag = { dx: c.x - x, dy: c.y - y, width: l.width, height: l.height };
 });
 ipcMain.on('drag-move', () => {
   if (!drag) return;
   const c = screen.getCursorScreenPoint();
-  win.setPosition(c.x - drag.dx, c.y - drag.dy);
+  win.setBounds({ x: c.x - drag.dx, y: c.y - drag.dy, width: drag.width, height: drag.height });
 });
 ipcMain.on('drag-end', () => {
   if (!drag) return;
