@@ -1,11 +1,14 @@
 // Desk Buddy main process: her see-through window, the tray icon near the
-// clock, saving, and pausing when the screen is locked.
+// clock (the menu bar on a Mac), saving, and pausing when the screen is locked.
+// Runs on Windows and macOS.
 
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, powerMonitor, nativeImage, session } = require('electron');
 const path = require('path');
 const { Store, NUMBERS, DEFAULT_MESSAGES } = require('./store');
 
 const NAME = 'Desk Buddy';
+const IS_MAC = process.platform === 'darwin';
+const LOGIN_LABEL = IS_MAC ? 'Open at login' : 'Start with Windows';
 // Her clip height on screen per size (medium is about a palm's height). Sized by
 // height so she stays the same size when the clips get wider room at the sides.
 const CHAR_HEIGHT = { small: 305, medium: 396, large: 502 };
@@ -63,6 +66,12 @@ function start() {
   session.defaultSession.setSpellCheckerLanguages([]);
   store = new Store(app.getPath('userData'));
   app.setAppUserModelId('com.deskbuddy.app');
+  if (IS_MAC) {
+    // She lives in the menu bar, not the Dock. The Edit menu makes copy and
+    // paste work in the settings window's text boxes.
+    if (app.dock) app.dock.hide();
+    Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }]));
+  }
 
   const l = layout(store.settings.size);
   let pos = store.data.position;
@@ -82,6 +91,8 @@ function start() {
     },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
+  // On a Mac, stay with the user on every desktop (Space), full-screen apps included.
+  if (IS_MAC) win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.setIgnoreMouseEvents(true, { forward: true });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', e => e.preventDefault());
@@ -134,8 +145,10 @@ function trayImage(on) {
 
 function makeTray() {
   tray = new Tray(trayImage(store.data.on));
+  // A click turns her on when she's off. On Windows it also opens the menu; on a
+  // Mac the menu opens by itself, as menu-bar icons do.
   tray.on('click', () => {
-    if (!store.data.on) setPower(true); else tray.popUpContextMenu();
+    if (!store.data.on) setPower(true); else if (!IS_MAC) tray.popUpContextMenu();
   });
   updateTray();
 }
@@ -157,7 +170,7 @@ function updateTray() {
     { label: 'Eye-rest reminders', type: 'checkbox', checked: s.eyes, click: i => changeSettings({ eyes: i.checked }) },
     { label: 'Posture reminders', type: 'checkbox', checked: s.posture, click: i => changeSettings({ posture: i.checked }) },
     { label: 'Size', submenu: ['small', 'medium', 'large'].map(size) },
-    { label: 'Start with Windows', type: 'checkbox', checked: s.startWithWindows,
+    { label: LOGIN_LABEL, type: 'checkbox', checked: s.startWithWindows,
       click: i => changeSettings({ startWithWindows: i.checked }) },
     { label: 'Move back to corner', click: resetPosition },
     { type: 'separator' },
@@ -230,6 +243,7 @@ function applyStartWithWindows() {
 
 ipcMain.handle('init', () => ({
   name: NAME,
+  loginLabel: LOGIN_LABEL,
   limits: NUMBERS,
   defaultMessages: DEFAULT_MESSAGES,
   settings: store.settings,

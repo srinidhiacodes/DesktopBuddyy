@@ -16,6 +16,11 @@
 - [x] Laptop clip made in Google Flow and added: she types on her laptop during focus.
 - [x] Fixed: bubble buttons couldn't be clicked (her video box covered the bubble).
 
+## Mac
+- [x] Works on Mac: menu-bar icon, no Dock icon, on every desktop and over full-screen apps, copy/paste in Settings, "Open at login".
+- [x] Mac download (`DeskBuddy-Mac.zip`, Intel + Apple Silicon) built and signed on a GitHub Mac.
+- [ ] Test on a real Mac.
+
 ## Decided
 - Water reminders wait until a focus session ends.
 - Water count resets at midnight.

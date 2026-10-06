@@ -62,6 +62,7 @@ function show(settings) {
   const init = await api.init();
   $('name').textContent = init.name;
   document.title = `${init.name} settings`;
+  $('login-label').textContent = init.loginLabel;
 
   for (const [key, step] of Object.entries(STEPS)) {
     const input = $(key);

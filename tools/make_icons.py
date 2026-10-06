@@ -1,5 +1,5 @@
 """Draw the tray icons (white drop on a pink circle; grey when she is off)
-and the app icon. Writes app/icons/. Needs Pillow."""
+and the app icons for Windows (.ico) and Mac (.icns). Writes app/icons/. Needs Pillow."""
 
 from pathlib import Path
 
@@ -45,6 +45,8 @@ def main():
     big = icon(256, PINK)
     big.save(OUT / "app.png")
     big.save(OUT / "app.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    # Mac icon: drawn at 1024 px; Pillow writes every size macOS needs.
+    icon(1024, PINK).save(OUT / "app.icns")
     print("wrote", ", ".join(sorted(p.name for p in OUT.iterdir())))
 
 
