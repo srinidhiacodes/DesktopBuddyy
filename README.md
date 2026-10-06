@@ -1,47 +1,75 @@
 # Desk Buddy
 
-A small animated character that floats on the Windows desktop and reminds you to drink water, focus and take breaks.
+A small animated character that floats on your Windows desktop and reminds you to drink water, focus and take breaks.
 
-## Run it
+## Download
+
+**Direct download (always the newest version):**
+https://github.com/srinidhiacodes/DesktopBuddyy/releases/latest/download/DeskBuddy.zip
+
+This link never expires and needs no GitHub account. It works on any Windows 10 or 11 laptop (64-bit).
+
+Or step by step from the repo page:
+
+1. Open https://github.com/srinidhiacodes/DesktopBuddyy
+2. On the right side, under **Releases**, click the newest one (for example **Desk Buddy 0.1.0**).
+3. Under **Assets**, click **DeskBuddy.zip**. It is about 155 MB.
+
+## Install and start
+
+1. Find `DeskBuddy.zip` in your Downloads folder, right-click it and choose **Extract All…**, then **Extract**.
+2. Open the new `DeskBuddy` folder and double-click **`DeskBuddy.exe`**.
+3. The first time, Windows shows a blue box saying **"Windows protected your PC"**. Click **More info**, then **Run anyway**. This happens because the app isn't signed; it won't ask again.
+4. She appears in the bottom-right corner and waves.
+
+Tip: keep the `DeskBuddy` folder somewhere permanent, such as Documents, before turning on **Start with Windows**. If you move the folder later, turn that setting off and on again.
+
+## Using her
+
+- **Hover over her** for the control bar: turn off, start focus, today's glasses of water, mute.
+- **Drag her** anywhere on the screen. She remembers the spot.
+- **Right-click her**, or click the **pink drop icon near the clock**, for the menu: turn on or off, start focus, sound, size, start with Windows, settings, quit.
+- When she's **off**, click the grey drop near the clock to turn her back on. (If you can't see it, click the small **^** arrow near the clock.)
+
+## Moving to another laptop
+
+Download and install as above on the new laptop. Her settings, water count and position are saved only on each laptop, in `%APPDATA%\Desk Buddy\desk-buddy.json`. To bring your settings along, copy that file to the same folder on the new laptop while she isn't running.
+
+## For developers
+
+### Run from the code
 
 ```
 npm install
 npm start
 ```
 
-## Build DeskBuddy.exe
+### Build DeskBuddy.exe
 
 ```
 npm run dist
 ```
 
 This makes `dist/DeskBuddy/` with `DeskBuddy.exe` inside (Windows 64-bit; it can be built from Windows, Linux or macOS).
-GitHub also builds it on every push: open the repo's **Actions** tab, pick the latest **Build for Windows** run and download **DeskBuddy** under Artifacts.
 
-## Install on Windows
+GitHub also builds it on every push (**Actions** tab → **Build for Windows**). Pushes to the main branch publish `DeskBuddy.zip` as a GitHub Release, one per app version: raise `version` in `package.json` to start a new release, otherwise the current version's release is replaced with the newest build. To rebuild without a code change, open **Actions** → **Build for Windows** → **Run workflow**.
 
-1. Download `DeskBuddy.zip` and unzip it.
-2. Double-click `DeskBuddy.exe`.
-3. On the blue "Windows protected your PC" warning, click **More info**, then **Run anyway** (first time only; the app isn't signed).
-4. She appears in the bottom-right corner. Right-click her, or click the pink drop near the clock, for the menu.
-
-## Folders
+### Folders
 
 - `app/main.js` – the see-through window, tray icon, saving, screen-lock pause.
-- `app/renderer/` – her window: clips, speech bubble, control bar, timers.
+- `app/renderer/` – her window (clips, speech bubble, control bar, timers) and the settings window.
 - `app/store.js` – settings and water count, saved in the user's app-data folder.
-
+- `app/media/` – the cleaned, see-through clips (`.webm`) and a first-frame picture of each (`.png`).
 - `source/brief.html` – the project brief.
 - `source/clips/` – original green-screen clips from Google Flow (idle1, idle2, idle3, focus, drink, stretch).
 - `source/stills/` – the original drawing, the green start image and the cut-out PNGs.
 - `tools/clean_clips.py` – removes the green background and lines her up across clips (run: `python3 tools/clean_clips.py`, needs ffmpeg, numpy, Pillow).
 - `tools/make_masks.py` – builds the click maps (`app/renderer/masks.js`) so clicks on empty space go through to the apps behind her.
-- `tools/build.mjs` – packages the app into `dist/DeskBuddy` (`npm run dist`).
-- `.github/workflows/build-windows.yml` – builds `DeskBuddy.exe` on GitHub on every push.
 - `tools/make_icons.py` – draws the tray and app icons.
-- `app/media/` – the cleaned, see-through clips (`.webm`) and a first-frame picture of each (`.png`).
+- `tools/build.mjs` – packages the app into `dist/DeskBuddy` (`npm run dist`).
+- `.github/workflows/build-windows.yml` – builds `DeskBuddy.exe` on GitHub and publishes the release.
 
-## How the cleaning works
+### How the cleaning works
 
 1. Her face in each clip is matched to the Focus clip, so she has the same size and position in every clip (Drink and Stretch are shrunk to about 90%).
 2. Green pixels become see-through, and green spill on her edges is removed.

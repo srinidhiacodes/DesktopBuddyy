@@ -1,11 +1,17 @@
-# Builds DeskBuddy.exe on a Windows machine at GitHub on every push.
-# Download it from the repo's Actions tab: open the latest run, then
-# "DeskBuddy" under Artifacts.
+# Builds DeskBuddy.exe on a Windows machine at GitHub.
+#
+# Every push: the build is kept for 30 days under the run's Artifacts.
+# Pushes to the main branches also publish DeskBuddy.zip to a GitHub Release,
+# which never expires. The newest one is always at
+#   https://github.com/srinidhiacodes/DesktopBuddyy/releases/latest/download/DeskBuddy.zip
 name: Build for Windows
 
 on:
   push:
   workflow_dispatch:
+
+permissions:
+  contents: write   # needed to publish the release
 
 jobs:
   build:
@@ -23,3 +29,30 @@ jobs:
           name: DeskBuddy
           path: dist/DeskBuddy
           retention-days: 30
+
+      - name: Zip it
+        if: github.ref_name == 'main' || github.ref_name == 'claude/stoic-shannon-77sa35'
+        working-directory: dist
+        run: 7z a -tzip -mx=9 DeskBuddy.zip DeskBuddy
+
+      # One release per app version (v0.1.0, ...). Rebuilding the same version
+      # replaces that release, so its download always matches the newest code.
+      - name: Publish release
+        if: github.ref_name == 'main' || github.ref_name == 'claude/stoic-shannon-77sa35'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = node -p "require('./package.json').version"
+          $tag = "v$version"
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) { gh release delete $tag --cleanup-tag --yes }
+          $notes = @"
+          Download **DeskBuddy.zip** below, unzip it and double-click ``DeskBuddy.exe``.
+
+          First time only: on the blue "Windows protected your PC" warning, click **More info**, then **Run anyway**.
+
+          Windows 10 / 11, 64-bit. Works offline. Built from commit $env:GITHUB_SHA.
+          "@
+          gh release create $tag dist/DeskBuddy.zip --title "Desk Buddy $version" --notes $notes --target $env:GITHUB_SHA --latest
+          exit $LASTEXITCODE
