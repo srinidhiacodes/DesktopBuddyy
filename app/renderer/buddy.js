@@ -438,6 +438,8 @@ const endDrag = () => {
   dragging = false;
 };
 charEl.addEventListener('pointerup', endDrag);
+// Right-click her for the same menu as the tray icon.
+charEl.addEventListener('contextmenu', e => { e.preventDefault(); api.showMenu(); });
 charEl.addEventListener('pointercancel', endDrag);
 
 // ---- Start-up ---------------------------------------------------------------------

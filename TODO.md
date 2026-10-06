@@ -2,7 +2,7 @@
 
 - [x] **Step 1 – Clean the clips.** Green removed, she's lined up in every clip, saved as see-through WebM.
 - [x] **Step 2 – Her window.** Floats on top with no frame, speech bubble, control bar on hover, drag to move, clicks pass through empty space, tray icon, water / focus / break timers, water count saved, chime, pauses when locked.
-- [ ] **Step 3 – Settings window.** Water interval, snooze, daily goal, focus and break length, size, sound, start with Windows.
+- [x] **Step 3 – Settings window.** Sliders for water interval, snooze, daily goal, focus and break length; size, chime and start with Windows; reset to defaults. Open it from the tray icon or by right-clicking her.
 - [ ] **Step 4 – Build `DeskBuddy.exe`.** Packaged as `DeskBuddy.zip` for Windows 10 / 11.
 - [ ] **Step 5 – Test on your Windows laptop.** Run it and report anything that looks or feels wrong.
 - [ ] **Step 6 – Fix what you find.**

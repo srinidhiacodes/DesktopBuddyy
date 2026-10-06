@@ -55,6 +55,11 @@ class Store {
 
   get settings() { return this.data.settings; }
 
+  // Back to the brief's defaults. "Start with Windows" is left as the user set it.
+  resetSettings() {
+    return this.setSettings({ ...defaults().settings, startWithWindows: this.data.settings.startWithWindows });
+  }
+
   setSettings(patch) {
     this.data.settings = cleanSettings({ ...this.data.settings, ...patch });
     this.save();
@@ -85,4 +90,4 @@ class Store {
   }
 }
 
-module.exports = { Store, SIZES };
+module.exports = { Store, SIZES, NUMBERS, defaults };

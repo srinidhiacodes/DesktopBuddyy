@@ -3,7 +3,7 @@
 
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, powerMonitor, nativeImage } = require('electron');
 const path = require('path');
-const { Store } = require('./store');
+const { Store, NUMBERS } = require('./store');
 
 const NAME = 'Desk Buddy';
 const CHAR_WIDTH = { small: 200, medium: 260, large: 330 };
@@ -14,7 +14,7 @@ const BAR_SPACE = 64;                 // room under her for the control bar
 const SIDE = 10;
 const EDGE = 8;                       // gap from the screen edge on first run
 
-let store, win, tray;
+let store, win, tray, menu, settingsWin;
 let interactive = false;
 let drag = null;
 
@@ -136,7 +136,7 @@ function updateTray() {
     label: name[0].toUpperCase() + name.slice(1), type: 'radio', checked: s.size === name,
     click: () => changeSettings({ size: name }),
   });
-  tray.setContextMenu(Menu.buildFromTemplate([
+  menu = Menu.buildFromTemplate([
     { label: on ? 'Turn off' : 'Turn on', click: () => setPower(!on) },
     { type: 'separator' },
     { label: 'Start focus', enabled: on, click: () => send('command', 'start-focus') },
@@ -146,8 +146,10 @@ function updateTray() {
       click: i => changeSettings({ startWithWindows: i.checked }) },
     { label: 'Move back to corner', click: resetPosition },
     { type: 'separator' },
+    { label: 'Settings…', click: openSettings },
     { label: 'Quit', click: () => app.quit() },
-  ]));
+  ]);
+  tray.setContextMenu(menu);
 }
 
 function resetPosition() {
@@ -158,13 +160,39 @@ function resetPosition() {
 
 // ---- Settings -------------------------------------------------------------
 
-function changeSettings(patch) {
-  const before = store.settings.size;
-  const s = store.setSettings(patch);
-  if (s.size !== before) resize(before, s.size);
-  if ('startWithWindows' in patch) applyStartWithWindows();
-  send('settings', { settings: s, layout: layout(s.size) });
+function changeSettings(patch, reset = false) {
+  const before = store.settings;
+  const s = reset ? store.resetSettings() : store.setSettings(patch);
+  if (s.size !== before.size) resize(before.size, s.size);
+  if (s.startWithWindows !== before.startWithWindows) applyStartWithWindows();
+  const payload = { settings: s, layout: layout(s.size) };
+  send('settings', payload);
+  if (settingsWin && !settingsWin.isDestroyed()) settingsWin.webContents.send('settings', payload);
   updateTray();
+}
+
+// A normal small window with a frame, opened from the menu.
+function openSettings() {
+  if (settingsWin && !settingsWin.isDestroyed()) {
+    settingsWin.show();
+    settingsWin.focus();
+    return;
+  }
+  settingsWin = new BrowserWindow({
+    width: 420, height: 660, useContentSize: true, resizable: false,
+    minimizable: false, maximizable: false, fullscreenable: false,
+    title: `${NAME} settings`, icon: path.join(__dirname, 'icons', 'app.png'),
+    autoHideMenuBar: true, backgroundColor: '#fbf6f9', show: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true, nodeIntegration: false, sandbox: true,
+    },
+  });
+  settingsWin.setMenu(null);
+  settingsWin.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  settingsWin.webContents.on('will-navigate', e => e.preventDefault());
+  settingsWin.loadFile(path.join(__dirname, 'renderer', 'settings.html'));
+  settingsWin.on('closed', () => { settingsWin = null; });
 }
 
 // Keep her feet in the same spot when she changes size.
@@ -185,6 +213,8 @@ function applyStartWithWindows() {
 // ---- Messages from her window ---------------------------------------------
 
 ipcMain.handle('init', () => ({
+  name: NAME,
+  limits: NUMBERS,
   settings: store.settings,
   layout: layout(store.settings.size),
   water: store.data.water,
@@ -198,6 +228,19 @@ ipcMain.on('set-water', (_e, water) => {
 });
 
 ipcMain.on('set-settings', (_e, patch) => changeSettings(patch || {}));
+ipcMain.on('reset-settings', () => changeSettings({}, true));
+ipcMain.on('open-settings', openSettings);
+// The settings page reports its height so the window fits it (and the screen).
+ipcMain.on('settings-ready', (_e, height) => {
+  if (!settingsWin || settingsWin.isDestroyed()) return;
+  const wa = screen.getDisplayMatching(settingsWin.getBounds()).workArea;
+  const h = Math.min(Math.round(Number(height)) || 660, wa.height - 40);
+  settingsWin.setContentSize(420, h);
+  settingsWin.center();
+  settingsWin.show();
+});
+ipcMain.on('close-settings', () => settingsWin && settingsWin.close());
+ipcMain.on('show-menu', () => menu.popup({ window: win }));
 ipcMain.on('set-power', (_e, on) => setPower(Boolean(on)));
 
 // Clicks on empty space go through to the apps behind her.
