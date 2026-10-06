@@ -1,0 +1,131 @@
+/* Desk Buddy window. The window itself is see-through; only her, the speech
+   bubble and the control bar are drawn. Colours and type follow the design
+   mockup. Sizes come from main.js through the --char-*, --bar-h and
+   --bubble-w variables. */
+
+@font-face { font-family: "Fredoka"; src: url("../fonts/Fredoka.woff2") format("woff2"); font-weight: 300 700; }
+@font-face { font-family: "Nunito"; src: url("../fonts/Nunito.woff2") format("woff2"); font-weight: 200 1000; }
+
+:root {
+  --pink: #b8457f;
+  --pink-dark: #8f2f60;
+  --pink-soft: #f3e4ee;
+  --pink-soft-ink: #6d2f52;
+  --ink: #2b1d27;
+  --ink-soft: #5e4a57;
+  --water: #6bb6e8;
+  --water-ink: #2e6f9e;
+  --glass-empty: #c9dcea;
+  --display: "Fredoka", "Nunito", "Segoe UI", sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+
+  --char-w: 260px;
+  --char-h: 396px;
+  --bar-h: 64px;
+  --bubble-w: 290px;
+  --head: 0.30;            /* where her head starts, as a share of the clip height */
+}
+body[data-clip="stretch"] { --head: 0.0; }   /* arms up: lift the bubble clear of her fists */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+body { font-family: var(--body); color: var(--ink); user-select: none; -webkit-user-select: none; }
+#stage { position: fixed; inset: 0; }
+p { margin: 0; }
+[hidden] { display: none !important; }
+
+/* ---- Her ---------------------------------------------------------------- */
+#char {
+  position: absolute; left: 50%; bottom: var(--bar-h);
+  width: var(--char-w); height: var(--char-h);
+  transform: translateX(-50%);
+  cursor: grab;
+}
+#char:active { cursor: grabbing; }
+#char video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; opacity: 0; transition: opacity .25s ease;
+  pointer-events: none;
+}
+#char video.on { opacity: 1; }
+
+/* ---- Speech bubble ------------------------------------------------------ */
+.bubble {
+  position: absolute; left: 50%;
+  bottom: calc(var(--bar-h) + var(--char-h) * (1 - var(--head)) + 4px);
+  width: var(--bubble-w);
+  transform: translateX(-50%);
+  background: #ffffff; border-radius: 20px; padding: 14px 16px;
+  box-shadow: 0 10px 30px rgba(10, 15, 30, .30), 0 0 0 1px rgba(43, 29, 39, .06);
+  display: flex; flex-direction: column; gap: 10px;
+  transition: bottom .35s ease;
+  animation: pop .22s ease-out;
+}
+.bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -9px; width: 18px; height: 18px;
+  margin-left: -9px; background: #ffffff; transform: rotate(45deg); border-radius: 0 0 4px 0;
+}
+@keyframes pop { from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.96); } }
+
+.b-title { font-family: var(--display); font-weight: 600; font-size: 19px; line-height: 1.25; }
+.b-text { font-size: 14px; line-height: 1.4; color: var(--ink-soft); }
+.bubble.compact .b-title { display: none; }
+
+.glasses { display: flex; flex-wrap: wrap; gap: 5px; }
+.glass {
+  width: 18px; height: 22px; border-radius: 3px 3px 7px 7px;
+  border: 2px solid var(--glass-empty);
+}
+.glass.full { background: var(--water); border-color: var(--water); }
+
+.timer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.clock {
+  font-family: var(--display); font-weight: 600; font-size: 34px; line-height: 1;
+  color: var(--pink); font-variant-numeric: tabular-nums;
+}
+.progress { height: 8px; border-radius: 999px; background: var(--pink-soft); overflow: hidden; }
+#b-progress-fill { height: 100%; width: 0; background: var(--pink); border-radius: 999px; transition: width 1s linear; }
+
+.actions { display: flex; gap: 8px; }
+.btn {
+  height: 44px; border: 0; border-radius: 12px; padding: 0 14px;
+  font: 700 15px var(--body); cursor: pointer;
+}
+.btn.small { height: 38px; font-size: 14px; }
+.btn.primary { flex-grow: 1; background: var(--pink); color: #ffffff; }
+.btn.primary:hover { background: var(--pink-dark); }
+.btn.secondary { min-width: 88px; background: var(--pink-soft); color: var(--pink-soft-ink); }
+.btn.secondary:hover { background: #ead2e1; }
+button:focus-visible { outline: 3px solid var(--water-ink); outline-offset: 2px; }
+
+/* ---- Control bar (shows on hover) -------------------------------------- */
+#bar {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 4px;
+  background: rgba(255, 255, 255, .96); border-radius: 999px; padding: 5px;
+  box-shadow: 0 6px 18px rgba(10, 15, 30, .32);
+  opacity: 0; visibility: hidden; transition: opacity .18s ease, visibility 0s linear .18s;
+  white-space: nowrap;
+}
+#bar.show { opacity: 1; visibility: visible; transition: opacity .18s ease; }
+#bar button { border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.round { width: 38px; height: 38px; border-radius: 999px; }
+.power { background: var(--pink); color: #ffffff; }
+.power:hover { background: var(--pink-dark); }
+.pill {
+  height: 38px; border-radius: 999px; padding: 0 13px; gap: 6px;
+  background: var(--pink-soft); color: var(--pink-soft-ink); font: 700 14px var(--body);
+}
+.pill:hover { background: #ead2e1; }
+.water { display: flex; align-items: center; gap: 4px; padding: 0 6px; font-weight: 700; font-size: 14px; color: var(--water-ink); }
+.water svg { color: var(--water); }
+.sound { background: transparent; color: #6d5a66; }
+.sound:hover { background: var(--pink-soft); }
+.sound .off-icon { display: none; }
+body.muted .sound .on-icon { display: none; }
+body.muted .sound .off-icon { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble { animation: none; transition: none; }
+  #char video { transition: none; }
+}
