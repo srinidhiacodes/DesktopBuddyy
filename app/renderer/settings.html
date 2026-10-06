@@ -12,7 +12,7 @@
     <img src="../icons/app.png" alt="" width="40" height="40">
     <div>
       <h1 id="name">Desk Buddy</h1>
-      <p class="sub">Changes save as you make them.</p>
+      <p class="sub">Changes save as you make them. <span id="version"></span></p>
     </div>
   </header>
 
@@ -49,6 +49,29 @@
     </div>
   </section>
 
+  <section class="group" aria-labelledby="h-more">
+    <h2 id="h-more">Eye rest and posture</h2>
+    <div class="row line">
+      <label for="eyes">Eye-rest reminder (20-20-20)</label>
+      <input type="checkbox" role="switch" id="eyes" class="switch">
+    </div>
+    <div class="row sub-row" data-needs="eyes">
+      <label for="eyesEvery">Every</label>
+      <output for="eyesEvery" id="eyesEvery-out"></output>
+      <input type="range" id="eyesEvery" data-unit="min">
+    </div>
+    <div class="row line">
+      <label for="posture">Posture reminder</label>
+      <input type="checkbox" role="switch" id="posture" class="switch">
+    </div>
+    <div class="row sub-row" data-needs="posture">
+      <label for="postureEvery">Every</label>
+      <output for="postureEvery" id="postureEvery-out"></output>
+      <input type="range" id="postureEvery" data-unit="min">
+    </div>
+    <p class="hint">During focus she stays quiet: these are skipped, and water waits until focus ends.</p>
+  </section>
+
   <section class="group" aria-labelledby="h-look">
     <h2 id="h-look">Her look and sound</h2>
     <div class="row line">
@@ -64,8 +87,22 @@
       <input type="checkbox" role="switch" id="sound" class="switch">
     </div>
     <div class="row line">
-      <label for="startWithWindows">Start with Windows</label>
+      <label for="startWithWindows" id="login-label">Start with Windows</label>
       <input type="checkbox" role="switch" id="startWithWindows" class="switch">
+    </div>
+  </section>
+
+  <section class="group" aria-labelledby="h-msg">
+    <h2 id="h-msg">Her messages</h2>
+    <p class="hint">Write your own words. Empty a box to go back to hers. Reset to defaults keeps your messages.</p>
+    <div class="field"><label for="msg-water">Water reminder</label><input type="text" id="msg-water" data-msg="water" maxlength="60" spellcheck="false"></div>
+    <div class="field"><label for="msg-focus">Focus starts</label><input type="text" id="msg-focus" data-msg="focus" maxlength="60" spellcheck="false"></div>
+    <div class="field"><label for="msg-stretch">Focus ends</label><input type="text" id="msg-stretch" data-msg="stretch" maxlength="60" spellcheck="false"></div>
+    <div class="field"><label for="msg-eyes">Eye rest</label><input type="text" id="msg-eyes" data-msg="eyes" maxlength="60" spellcheck="false"></div>
+    <div class="field"><label for="msg-posture">Posture</label><input type="text" id="msg-posture" data-msg="posture" maxlength="60" spellcheck="false"></div>
+    <div class="field">
+      <label for="msg-lines">When you click her <span class="soft">(one line each, she picks one)</span></label>
+      <textarea id="msg-lines" data-msg="lines" rows="5" spellcheck="false"></textarea>
     </div>
   </section>
 

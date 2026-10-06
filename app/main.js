@@ -1,13 +1,18 @@
 // Desk Buddy main process: her see-through window, the tray icon near the
-// clock, saving, and pausing when the screen is locked.
+// clock (the menu bar on a Mac), saving, and pausing when the screen is locked.
+// Runs on Windows and macOS.
 
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen, powerMonitor, nativeImage, session } = require('electron');
 const path = require('path');
-const { Store, NUMBERS } = require('./store');
+const { Store, NUMBERS, DEFAULT_MESSAGES } = require('./store');
 
 const NAME = 'Desk Buddy';
-const CHAR_WIDTH = { small: 200, medium: 260, large: 330 };
-const VIDEO = { w: 532, h: 810 };     // size of the cleaned clips
+const IS_MAC = process.platform === 'darwin';
+const LOGIN_LABEL = IS_MAC ? 'Open at login' : 'Start with Windows';
+// Her clip height on screen per size (medium is about a palm's height). Sized by
+// height so she stays the same size when the clips get wider room at the sides.
+const CHAR_HEIGHT = { small: 305, medium: 396, large: 502 };
+const VIDEO = require('./media/clips.json');   // size of the cleaned clips, written by tools/clean_clips.py
 const BUBBLE_W = 290;                 // speech bubble width
 const BUBBLE_SPACE = 240;             // room above her head for the bubble
 const BAR_SPACE = 64;                 // room under her for the control bar
@@ -17,6 +22,7 @@ const EDGE = 8;                       // gap from the screen edge on first run
 let store, win, tray, menu, settingsWin;
 let interactive = false;
 let drag = null;
+let cursorTimer = null, cursorWasInside = false, lastCursor = '';
 // Her animation pauses while the screen is locked or the laptop is asleep.
 // The two are tracked apart: waking from sleep can still leave the screen locked.
 const resting = { locked: false, asleep: false };
@@ -29,8 +35,8 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 function layout(size) {
-  const charW = CHAR_WIDTH[size] || CHAR_WIDTH.medium;
-  const charH = Math.round(charW * VIDEO.h / VIDEO.w);
+  const charH = CHAR_HEIGHT[size] || CHAR_HEIGHT.medium;
+  const charW = Math.round(charH * VIDEO.width / VIDEO.height);
   return {
     charW, charH, bubbleW: BUBBLE_W, barH: BAR_SPACE,
     width: Math.max(charW, BUBBLE_W) + SIDE * 2,
@@ -61,6 +67,12 @@ function start() {
   session.defaultSession.setSpellCheckerLanguages([]);
   store = new Store(app.getPath('userData'));
   app.setAppUserModelId('com.deskbuddy.app');
+  if (IS_MAC) {
+    // She lives in the menu bar, not the Dock. The Edit menu makes copy and
+    // paste work in the settings window's text boxes.
+    if (app.dock) app.dock.hide();
+    Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }]));
+  }
 
   const l = layout(store.settings.size);
   let pos = store.data.position;
@@ -80,11 +92,13 @@ function start() {
     },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
+  // On a Mac, stay with the user on every desktop (Space), full-screen apps included.
+  if (IS_MAC) win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   win.setIgnoreMouseEvents(true, { forward: true });
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', e => e.preventDefault());
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  win.once('ready-to-show', () => { if (store.data.on) win.showInactive(); });
+  win.once('ready-to-show', () => { if (store.data.on) { win.showInactive(); watchCursor(true); } });
 
   makeTray();
   applyStartWithWindows();
@@ -120,8 +134,39 @@ function keepOnScreen() {
 function setPower(on) {
   store.set('on', on);
   if (on) win.showInactive(); else win.hide();
+  watchCursor(on);
   send('power', on);
   updateTray();
+}
+
+// ---- Where the mouse is ---------------------------------------------------
+// Her window lets clicks through to the apps behind, so it can't rely on mouse
+// events to notice the pointer arriving over her bubble or bar. Instead the
+// pointer position is checked about 12 times a second while she's on, and her
+// window decides whether that spot is clickable. Cheap, and it works the same on
+// Windows and Mac.
+
+function watchCursor(on) {
+  clearInterval(cursorTimer);
+  cursorTimer = null;
+  if (on) cursorTimer = setInterval(checkCursor, 80);
+}
+
+function checkCursor() {
+  if (!win || win.isDestroyed() || !win.isVisible() || drag) return;
+  const c = screen.getCursorScreenPoint();
+  const b = win.getBounds();
+  const inside = c.x >= b.x && c.x < b.x + b.width && c.y >= b.y && c.y < b.y + b.height;
+  if (!inside) {
+    if (cursorWasInside) send('cursor', null);
+    cursorWasInside = false;
+    return;
+  }
+  const at = `${c.x - b.x},${c.y - b.y}`;
+  if (cursorWasInside && at === lastCursor) return;
+  cursorWasInside = true;
+  lastCursor = at;
+  send('cursor', { x: c.x - b.x, y: c.y - b.y });
 }
 
 // ---- Tray icon --------------------------------------------------------------
@@ -132,8 +177,10 @@ function trayImage(on) {
 
 function makeTray() {
   tray = new Tray(trayImage(store.data.on));
+  // A click turns her on when she's off. On Windows it also opens the menu; on a
+  // Mac the menu opens by itself, as menu-bar icons do.
   tray.on('click', () => {
-    if (!store.data.on) setPower(true); else tray.popUpContextMenu();
+    if (!store.data.on) setPower(true); else if (!IS_MAC) tray.popUpContextMenu();
   });
   updateTray();
 }
@@ -142,7 +189,7 @@ function updateTray() {
   const on = store.data.on;
   const s = store.settings;
   tray.setImage(trayImage(on));
-  tray.setToolTip(on ? NAME : `${NAME} (off)`);
+  tray.setToolTip(`${NAME} ${app.getVersion()}${on ? '' : ' (off)'}`);
   const size = name => ({
     label: name[0].toUpperCase() + name.slice(1), type: 'radio', checked: s.size === name,
     click: () => changeSettings({ size: name }),
@@ -152,8 +199,10 @@ function updateTray() {
     { type: 'separator' },
     { label: 'Start focus', enabled: on, click: () => send('command', 'start-focus') },
     { label: 'Sound', type: 'checkbox', checked: s.sound, click: i => changeSettings({ sound: i.checked }) },
+    { label: 'Eye-rest reminders', type: 'checkbox', checked: s.eyes, click: i => changeSettings({ eyes: i.checked }) },
+    { label: 'Posture reminders', type: 'checkbox', checked: s.posture, click: i => changeSettings({ posture: i.checked }) },
     { label: 'Size', submenu: ['small', 'medium', 'large'].map(size) },
-    { label: 'Start with Windows', type: 'checkbox', checked: s.startWithWindows,
+    { label: LOGIN_LABEL, type: 'checkbox', checked: s.startWithWindows,
       click: i => changeSettings({ startWithWindows: i.checked }) },
     { label: 'Move back to corner', click: resetPosition },
     { type: 'separator' },
@@ -226,7 +275,10 @@ function applyStartWithWindows() {
 
 ipcMain.handle('init', () => ({
   name: NAME,
+  loginLabel: LOGIN_LABEL,
+  version: app.getVersion(),
   limits: NUMBERS,
+  defaultMessages: DEFAULT_MESSAGES,
   settings: store.settings,
   layout: layout(store.settings.size),
   water: store.data.water,
@@ -246,7 +298,7 @@ ipcMain.on('open-settings', openSettings);
 ipcMain.on('settings-ready', (_e, height) => {
   if (!settingsWin || settingsWin.isDestroyed()) return;
   const wa = screen.getDisplayMatching(settingsWin.getBounds()).workArea;
-  const h = Math.min(Math.round(Number(height)) || 660, wa.height - 40);
+  const h = Math.min(Math.round(Number(height)) || 660, 760, wa.height - 40);
   settingsWin.setContentSize(420, h);
   settingsWin.center();
   settingsWin.show();

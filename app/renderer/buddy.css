@@ -35,8 +35,11 @@ p { margin: 0; }
 [hidden] { display: none !important; }
 
 /* ---- Her ---------------------------------------------------------------- */
+/* Layers: her video at the bottom; the bubble and bar above it. The bubble
+   sits in the empty top part of her video box, so without this the box would
+   cover the bubble and its buttons couldn't be clicked. */
 #char {
-  position: absolute; left: 50%; bottom: var(--bar-h);
+  position: absolute; left: 50%; bottom: var(--bar-h); z-index: 1;
   width: var(--char-w); height: var(--char-h);
   transform: translateX(-50%);
   cursor: grab;
@@ -51,7 +54,7 @@ p { margin: 0; }
 
 /* ---- Speech bubble ------------------------------------------------------ */
 .bubble {
-  position: absolute; left: 50%;
+  position: absolute; left: 50%; z-index: 2;
   bottom: calc(var(--bar-h) + var(--char-h) * (1 - var(--head)) + 4px);
   width: var(--bubble-w);
   transform: translateX(-50%);
@@ -100,7 +103,7 @@ button:focus-visible { outline: 3px solid var(--water-ink); outline-offset: 2px;
 
 /* ---- Control bar (shows on hover) -------------------------------------- */
 #bar {
-  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 2;
   display: flex; align-items: center; gap: 4px;
   background: rgba(255, 255, 255, .96); border-radius: 999px; padding: 5px;
   box-shadow: 0 6px 18px rgba(10, 15, 30, .32);

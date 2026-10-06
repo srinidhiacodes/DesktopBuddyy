@@ -1,0 +1,99 @@
+# Builds Desk Buddy for Windows and Mac at GitHub.
+#
+# Every push: the Windows build is kept for 30 days under the run's Artifacts.
+# Pushes to the main branches also publish both downloads to a GitHub Release,
+# which never expires. The newest ones are always at
+#   https://github.com/srinidhiacodes/DesktopBuddyy/releases/latest/download/DeskBuddy.zip
+#   https://github.com/srinidhiacodes/DesktopBuddyy/releases/latest/download/DeskBuddy-Mac.zip
+name: Build for Windows and Mac
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to publish the release
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DeskBuddy
+          path: dist/DeskBuddy
+          retention-days: 30
+      - name: Zip it
+        working-directory: dist
+        run: 7z a -tzip -mx=9 DeskBuddy.zip DeskBuddy
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: dist/DeskBuddy.zip
+          retention-days: 1
+
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # One app for both Intel and Apple Silicon Macs.
+      - run: npm run dist -- darwin universal
+      # Apple Silicon Macs only open signed apps. Without a paid Apple developer
+      # account this is an ad-hoc signature: the app opens after the user allows
+      # it once in System Settings (see the README).
+      - name: Sign (ad-hoc)
+        run: |
+          codesign --force --deep --sign - "dist/DeskBuddy-mac/Desk Buddy.app"
+          codesign --verify --deep --strict --verbose=1 "dist/DeskBuddy-mac/Desk Buddy.app"
+      # ditto keeps the app's internal links intact, which a plain zip would break.
+      - name: Zip it
+        run: ditto -c -k --sequesterRsrc --keepParent "dist/DeskBuddy-mac/Desk Buddy.app" dist/DeskBuddy-Mac.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-mac
+          path: dist/DeskBuddy-Mac.zip
+          retention-days: 30
+
+  # One release per app version (v0.1.0, ...). Rebuilding the same version
+  # replaces that release, so its downloads always match the newest code.
+  release:
+    needs: [windows, mac]
+    if: github.ref_name == 'main' || github.ref_name == 'claude/stoic-shannon-77sa35'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: out
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="v$version"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release delete "$tag" --cleanup-tag --yes
+          fi
+          cat > notes.md <<EOF
+          **Windows 10 / 11:** download **DeskBuddy.zip**, unzip it and double-click \`DeskBuddy.exe\`. First time only: on the blue "Windows protected your PC" box, click **More info**, then **Run anyway**.
+
+          **Mac (Intel or Apple Silicon, macOS 12 or newer):** download **DeskBuddy-Mac.zip**, double-click it and drag **Desk Buddy** into Applications. First time only: open it, click **Done** on the warning, then go to **System Settings → Privacy & Security** and click **Open Anyway**.
+
+          Works offline. Built from commit $GITHUB_SHA.
+          EOF
+          gh release create "$tag" out/DeskBuddy.zip out/DeskBuddy-Mac.zip \
+            --title "Desk Buddy $version" --notes-file notes.md --target "$GITHUB_SHA" --latest
