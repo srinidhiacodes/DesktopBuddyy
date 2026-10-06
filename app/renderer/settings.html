@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; font-src 'self'; style-src 'self'; script-src 'self'">
+<title>Desk Buddy settings</title>
+<link rel="stylesheet" href="settings.css">
+</head>
+<body>
+<main class="page">
+  <header class="head">
+    <img src="../icons/app.png" alt="" width="40" height="40">
+    <div>
+      <h1 id="name">Desk Buddy</h1>
+      <p class="sub">Changes save as you make them.</p>
+    </div>
+  </header>
+
+  <section class="group" aria-labelledby="h-water">
+    <h2 id="h-water">Water</h2>
+    <div class="row">
+      <label for="waterEvery">Remind me every</label>
+      <output for="waterEvery" id="waterEvery-out"></output>
+      <input type="range" id="waterEvery" data-unit="min">
+    </div>
+    <div class="row">
+      <label for="snooze">“Later” asks again after</label>
+      <output for="snooze" id="snooze-out"></output>
+      <input type="range" id="snooze" data-unit="min">
+    </div>
+    <div class="row">
+      <label for="goal">Daily goal</label>
+      <output for="goal" id="goal-out"></output>
+      <input type="range" id="goal" data-unit="glasses">
+    </div>
+  </section>
+
+  <section class="group" aria-labelledby="h-focus">
+    <h2 id="h-focus">Focus and breaks</h2>
+    <div class="row">
+      <label for="focus">Focus session</label>
+      <output for="focus" id="focus-out"></output>
+      <input type="range" id="focus" data-unit="min">
+    </div>
+    <div class="row">
+      <label for="break">Break</label>
+      <output for="break" id="break-out"></output>
+      <input type="range" id="break" data-unit="min">
+    </div>
+  </section>
+
+  <section class="group" aria-labelledby="h-look">
+    <h2 id="h-look">Her look and sound</h2>
+    <div class="row line">
+      <span id="size-label">Size on screen</span>
+      <div class="segmented" role="radiogroup" aria-labelledby="size-label">
+        <input type="radio" name="size" id="size-small" value="small"><label for="size-small">Small</label>
+        <input type="radio" name="size" id="size-medium" value="medium"><label for="size-medium">Medium</label>
+        <input type="radio" name="size" id="size-large" value="large"><label for="size-large">Large</label>
+      </div>
+    </div>
+    <div class="row line">
+      <label for="sound">Chime with reminders</label>
+      <input type="checkbox" role="switch" id="sound" class="switch">
+    </div>
+    <div class="row line">
+      <label for="startWithWindows">Start with Windows</label>
+      <input type="checkbox" role="switch" id="startWithWindows" class="switch">
+    </div>
+  </section>
+
+  <footer class="foot">
+    <button type="button" id="reset" class="btn secondary">Reset to defaults</button>
+    <button type="button" id="done" class="btn primary">Done</button>
+  </footer>
+</main>
+<script src="settings.js"></script>
+</body>
+</html>

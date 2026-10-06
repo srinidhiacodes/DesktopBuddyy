@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; media-src 'self'; font-src 'self'; style-src 'self'; script-src 'self'">
+<title>Desk Buddy</title>
+<link rel="stylesheet" href="buddy.css">
+</head>
+<body>
+<main id="stage">
+
+  <section id="bubble" class="bubble" aria-live="polite" hidden>
+    <p id="b-title" class="b-title"></p>
+    <p id="b-text" class="b-text" hidden></p>
+    <div id="b-glasses" class="glasses" hidden></div>
+    <div id="b-timer" class="timer" hidden>
+      <span id="b-clock" class="clock">25:00</span>
+      <button id="b-timer-btn" type="button" class="btn secondary small"></button>
+    </div>
+    <div id="b-progress" class="progress" hidden><div id="b-progress-fill"></div></div>
+    <div id="b-actions" class="actions" hidden>
+      <button id="b-primary" type="button" class="btn primary"></button>
+      <button id="b-secondary" type="button" class="btn secondary"></button>
+    </div>
+  </section>
+
+  <div id="char" aria-label="Desk Buddy">
+    <video id="vid-a" class="on" muted playsinline preload="auto"></video>
+    <video id="vid-b" muted playsinline preload="auto"></video>
+  </div>
+
+  <nav id="bar" aria-label="Desk Buddy controls">
+    <button id="bar-power" type="button" class="round power" aria-label="Turn off" title="Turn off">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/></svg>
+    </button>
+    <button id="bar-focus" type="button" class="pill">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M9 2h6"/></svg>
+      <span id="bar-focus-label">Start focus</span>
+    </button>
+    <span id="bar-water" class="water" title="Glasses of water today">
+      <svg width="14" height="16" viewBox="0 0 24 28" fill="currentColor"><path d="M12 2C8 8 4 12 4 18a8 8 0 0 0 16 0c0-6-4-10-8-16z"/></svg>
+      <span id="bar-water-count">0/8</span>
+    </span>
+    <button id="bar-sound" type="button" class="round sound" aria-label="Mute" title="Mute">
+      <svg class="on-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg>
+      <svg class="off-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9l5 6"/><path d="M21 9l-5 6"/></svg>
+    </button>
+  </nav>
+
+</main>
+<script src="masks.js"></script>
+<script src="buddy.js"></script>
+</body>
+</html>

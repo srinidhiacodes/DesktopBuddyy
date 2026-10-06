@@ -1,0 +1,16 @@
+{
+  "name": "desk-buddy",
+  "productName": "Desk Buddy",
+  "version": "0.1.0",
+  "description": "A small animated buddy on your desktop who reminds you to drink water, focus and take breaks.",
+  "main": "app/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "node tools/build.mjs"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "44.5.1"
+  }
+}
