@@ -497,17 +497,23 @@ function setInteractive(value) {
   api.setInteractive(value);
 }
 
-document.addEventListener('mousemove', e => {
+// The pointer position arrives two ways: from the main process, which checks it
+// about 12 times a second (this always works, even while clicks pass through),
+// and from ordinary mouse moves while the window is taking clicks.
+function pointerAt(x, y) {
   if (dragging) return;
-  const hit = hitTest(e.clientX, e.clientY);
+  const hit = hitTest(x, y);
   setInteractive(Boolean(hit));
   if (hit) showBar(); else hideBarSoon();
-});
-document.addEventListener('mouseleave', () => {
+}
+function pointerLeft() {
   if (dragging) return;
   setInteractive(false);
   hideBarSoon();
-});
+}
+api.on('cursor', p => (p ? pointerAt(p.x, p.y) : pointerLeft()));
+document.addEventListener('mousemove', e => pointerAt(e.clientX, e.clientY));
+document.addEventListener('mouseleave', pointerLeft);
 
 // ---- Drag her anywhere (a click without moving is a poke) ------------------------
 

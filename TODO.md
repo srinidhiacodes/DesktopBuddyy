@@ -15,6 +15,7 @@
 - [x] App ready for a laptop "work" clip during focus.
 - [x] Laptop clip made in Google Flow and added: she types on her laptop during focus.
 - [x] Fixed: bubble buttons couldn't be clicked (her video box covered the bubble).
+- [x] Fixed: bubble buttons still unclickable on Windows. The app now checks where the pointer is itself (about 12 times a second) instead of relying on mouse events reaching a click-through window. Version 0.2.0; the version shows in Settings and in the tray tooltip.
 
 ## Mac
 - [x] Works on Mac: menu-bar icon, no Dock icon, on every desktop and over full-screen apps, copy/paste in Settings, "Open at login".

@@ -17,7 +17,7 @@ contextBridge.exposeInMainWorld('buddy', {
   dragMove: () => ipcRenderer.send('drag-move'),
   dragEnd: () => ipcRenderer.send('drag-end'),
   on: (channel, fn) => {
-    if (['power', 'locked', 'settings', 'command'].includes(channel)) {
+    if (['power', 'locked', 'settings', 'command', 'cursor'].includes(channel)) {
       ipcRenderer.on(channel, (_e, value) => fn(value));
     }
   },

@@ -22,6 +22,7 @@ const EDGE = 8;                       // gap from the screen edge on first run
 let store, win, tray, menu, settingsWin;
 let interactive = false;
 let drag = null;
+let cursorTimer = null, cursorWasInside = false, lastCursor = '';
 // Her animation pauses while the screen is locked or the laptop is asleep.
 // The two are tracked apart: waking from sleep can still leave the screen locked.
 const resting = { locked: false, asleep: false };
@@ -97,7 +98,7 @@ function start() {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', e => e.preventDefault());
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  win.once('ready-to-show', () => { if (store.data.on) win.showInactive(); });
+  win.once('ready-to-show', () => { if (store.data.on) { win.showInactive(); watchCursor(true); } });
 
   makeTray();
   applyStartWithWindows();
@@ -133,8 +134,39 @@ function keepOnScreen() {
 function setPower(on) {
   store.set('on', on);
   if (on) win.showInactive(); else win.hide();
+  watchCursor(on);
   send('power', on);
   updateTray();
+}
+
+// ---- Where the mouse is ---------------------------------------------------
+// Her window lets clicks through to the apps behind, so it can't rely on mouse
+// events to notice the pointer arriving over her bubble or bar. Instead the
+// pointer position is checked about 12 times a second while she's on, and her
+// window decides whether that spot is clickable. Cheap, and it works the same on
+// Windows and Mac.
+
+function watchCursor(on) {
+  clearInterval(cursorTimer);
+  cursorTimer = null;
+  if (on) cursorTimer = setInterval(checkCursor, 80);
+}
+
+function checkCursor() {
+  if (!win || win.isDestroyed() || !win.isVisible() || drag) return;
+  const c = screen.getCursorScreenPoint();
+  const b = win.getBounds();
+  const inside = c.x >= b.x && c.x < b.x + b.width && c.y >= b.y && c.y < b.y + b.height;
+  if (!inside) {
+    if (cursorWasInside) send('cursor', null);
+    cursorWasInside = false;
+    return;
+  }
+  const at = `${c.x - b.x},${c.y - b.y}`;
+  if (cursorWasInside && at === lastCursor) return;
+  cursorWasInside = true;
+  lastCursor = at;
+  send('cursor', { x: c.x - b.x, y: c.y - b.y });
 }
 
 // ---- Tray icon --------------------------------------------------------------
@@ -157,7 +189,7 @@ function updateTray() {
   const on = store.data.on;
   const s = store.settings;
   tray.setImage(trayImage(on));
-  tray.setToolTip(on ? NAME : `${NAME} (off)`);
+  tray.setToolTip(`${NAME} ${app.getVersion()}${on ? '' : ' (off)'}`);
   const size = name => ({
     label: name[0].toUpperCase() + name.slice(1), type: 'radio', checked: s.size === name,
     click: () => changeSettings({ size: name }),
@@ -244,6 +276,7 @@ function applyStartWithWindows() {
 ipcMain.handle('init', () => ({
   name: NAME,
   loginLabel: LOGIN_LABEL,
+  version: app.getVersion(),
   limits: NUMBERS,
   defaultMessages: DEFAULT_MESSAGES,
   settings: store.settings,

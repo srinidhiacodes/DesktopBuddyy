@@ -63,6 +63,7 @@ function show(settings) {
   $('name').textContent = init.name;
   document.title = `${init.name} settings`;
   $('login-label').textContent = init.loginLabel;
+  $('version').textContent = `Version ${init.version}`;
 
   for (const [key, step] of Object.entries(STEPS)) {
     const input = $(key);

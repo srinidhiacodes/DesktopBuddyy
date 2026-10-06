@@ -42,6 +42,9 @@ xattr -dr com.apple.quarantine "/Applications/Desk Buddy.app"
 
 ## Using her
 
+To see which version you have, open **Settings** (the version is under her name) or hover over her tray icon.
+
+
 - **Hover over her** for the control bar: turn off, start focus, today's glasses of water, mute.
 - **Drag her** anywhere on the screen. She remembers the spot.
 - **Right-click her**, or click her **pink drop icon** (near the clock on Windows, in the menu bar on a Mac), for the menu: turn on or off, start focus, sound, eye-rest and posture reminders, size, start at login, settings, quit.
